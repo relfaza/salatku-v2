@@ -81,3 +81,65 @@ Files that are **byte-identical** to the original template: `HomeScreen.kt`, `Da
 - Coloured Log cells, some accessibility audit fixes, navigation, and any real data layer are not part of this baseline.
 
 See `NOTES.md` for the instructor notes on the two StateFlow pitfalls.
+
+---
+
+# Assignment M17: Navigation Compose
+
+This section documents the Meeting 17 assignment, done on top of the baseline described above. It adds **Jetpack Navigation Compose** with type-safe routes and a new **Prayer Detail** screen. Where this section differs from the baseline text above (for example the Tracker signature, or "navigation is not part of this baseline"), this section is the current state.
+
+## What was added
+
+- A small **nested navigation graph inside the Tracker tab** (`TrackerTabWithDetail`), with a `NavController` from `rememberNavController()` and a `NavHost` that starts at `Home`.
+- Two **type-safe routes**: `@Serializable object Home` and `@Serializable data class PrayerDetail(val name: String)`.
+- A new **`PrayerDetailScreen`** that shows the name and time of one prayer, a "Prayer not found" message when the name is unknown, and a **Back** button.
+- A helper, `getPrayerByName(uiState, name)`, which looks the prayer up with `find` over `uiState.prayers`.
+- A new `onPrayerClick` callback on `TrackerScreen`: tapping a prayer row opens its detail screen, while the checkbox still toggles the done state on its own.
+
+The NavHost uses no enter/exit animations. The bottom Navigation Bar and the `when (selected)` block were **not** converted to navigation routes (that is Meeting 18), so Home, Tasbih and Log work exactly as before.
+
+## New and changed files
+
+| File | Change |
+|---|---|
+| `gradle/libs.versions.toml` | Added `navigationCompose = "2.10.2"` and `kotlinxSerializationJson = "1.8.0"`, the two libraries, and the `kotlin-serialization` plugin (same version as Kotlin) |
+| `build.gradle.kts` (root) | Added `alias(libs.plugins.kotlin.serialization) apply false` |
+| `app/build.gradle.kts` | Applied the serialization plugin and added `navigation-compose` and `kotlinx-serialization-json` |
+| `navigation/Destinations.kt` | **New.** The `Home` and `PrayerDetail` routes |
+| `ui/screens/PrayerDetailScreen.kt` | **New.** The detail screen |
+| `MainActivity.kt` | Tab 1 now calls `TrackerTabWithDetail`. Added `TrackerTabWithDetail` and `getPrayerByName` |
+| `TrackerScreen.kt` | Added `onPrayerClick` and made each prayer row clickable |
+
+## Versions added in M17
+
+| Item | Version |
+|---|---|
+| Navigation Compose | 2.10.2 |
+| kotlinx-serialization-json | 1.8.0 |
+| Kotlin serialization plugin | same as Kotlin, 2.3.21 |
+
+## Signatures added or changed
+
+| Item | Signature |
+|---|---|
+| Tracker | `TrackerScreen(prayers, donePrayers, doneCount, onToggle, onClear, onPrayerClick = {}, modifier)` |
+| Prayer detail | `PrayerDetailScreen(prayer: Prayer?, onBack, modifier)` |
+| Tracker tab with navigation | `TrackerTabWithDetail(viewModel, uiState, modifier)` |
+| Helper | `getPrayerByName(uiState, name): Prayer?` |
+
+## Known limit added in M17
+
+Because the navigation graph is nested inside the Tracker tab, leaving the Tracker tab removes its `NavController` from the screen. When the user comes back to the Tracker tab, a new `NavController` starts at the prayer list, so an open detail screen is **not** restored. The done state of the prayers is not affected, because it lives in the ViewModel. Redesigning the top-level navigation so one `NavController` drives the bottom bar is Meeting 18.
+
+## Task E: Test results
+
+| # | Action | Observation |
+|---|--------|-------------|
+| 1 | Open Tracker tab | The list of prayers is shown as before. |
+| 2 | Tap a prayer row | The detail screen shows the name and time of that prayer. |
+| 3 | Tap Back | I return to the Tracker list. |
+| 4 | Tap a different prayer | The detail screen shows the new prayer, not the previous one. |
+| 5 | From the detail screen, switch to Home tab, then back to Tracker tab | No crash. I land on the prayer list, not on the detail screen, because the nested NavController is recreated when the Tracker tab leaves the screen. |
+| 6 | Toggle a prayer's done state, then open and close its detail screen | The done state and the progress text are unchanged. |
+
+The other tabs (Home, Tasbih and Log) behave as before. A screen recording of all six scenarios, in this order, was submitted as an attachment to the Classroom assignment.

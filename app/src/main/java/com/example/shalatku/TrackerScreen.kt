@@ -1,8 +1,10 @@
 package com.example.shalatku
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +29,7 @@ fun TrackerScreen(
     doneCount: Int,
     onToggle: (String) -> Unit,
     onClear: () -> Unit,
+    onPrayerClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
@@ -45,7 +48,9 @@ fun TrackerScreen(
             Row(
                 // M11: 48dp row, and one TalkBack node that says the name and the done state.
                 modifier = Modifier
+                    .fillMaxWidth()
                     .heightIn(min = 48.dp)
+                    .clickable { onPrayerClick(prayer.name) }
                     .semantics(mergeDescendants = true) {
                         stateDescription = if (done) "Done" else "Not done"
                     },
@@ -70,7 +75,8 @@ fun TrackerScreenPreview() {
             donePrayers = listOf("Subuh", "Dzuhur"),
             doneCount = 2,
             onToggle = {},
-            onClear = {}
+            onClear = {},
+            onPrayerClick = {}
         )
     }
 }

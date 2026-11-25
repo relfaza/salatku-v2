@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +27,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.example.shalatku.navigation.Home
+import com.example.shalatku.navigation.PrayerDetail
+import com.example.shalatku.ui.screens.PrayerDetailScreen
 import com.example.shalatku.ui.theme.ShalatkuTheme
 
 // Material "expanded" width breakpoint (M11): at this width or more, Home shows two panes.
@@ -90,12 +100,9 @@ fun ShalatkuApp(viewModel: SalatKuViewModel = viewModel()) {
                 modifier = contentModifier,
                 expanded = expanded
             )
-            1 -> TrackerScreen(
-                prayers = uiState.prayers,
-                donePrayers = uiState.donePrayers,
-                doneCount = uiState.doneCount,
-                onToggle = { viewModel.onEvent(SalatKuEvent.PrayerToggled(it)) },
-                onClear = { viewModel.onEvent(SalatKuEvent.PrayersCleared) },
+            1 -> TrackerTabWithDetail(
+                viewModel = viewModel,
+                uiState = uiState,
                 modifier = contentModifier
             )
             2 -> TasbihScreen(
@@ -110,4 +117,45 @@ fun ShalatkuApp(viewModel: SalatKuViewModel = viewModel()) {
             3 -> LogScreen(cells = sampleLog, modifier = contentModifier)
         }
     }
+}
+
+@Composable
+fun TrackerTabWithDetail(
+    viewModel: SalatKuViewModel,
+    uiState: SalatKuUiState,
+    modifier: Modifier = Modifier
+) {
+    val navController = rememberNavController()
+    NavHost(
+        navController = navController,
+        startDestination = Home,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None },
+        modifier = modifier.fillMaxSize()
+    ) {
+        composable<Home> {
+            TrackerScreen(
+                prayers = uiState.prayers,
+                donePrayers = uiState.donePrayers,
+                doneCount = uiState.doneCount,
+                onToggle = { viewModel.onEvent(SalatKuEvent.PrayerToggled(it)) },
+                onClear = { viewModel.onEvent(SalatKuEvent.PrayersCleared) },
+                onPrayerClick = { name -> navController.navigate(PrayerDetail(name)) },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable<PrayerDetail> { backStackEntry ->
+            val route = backStackEntry.toRoute<PrayerDetail>()
+            PrayerDetailScreen(
+                prayer = getPrayerByName(uiState, route.name),
+                onBack = { navController.popBackStack(Home, inclusive = false) }
+            )
+        }
+    }
+}
+
+fun getPrayerByName(uiState: SalatKuUiState, name: String): Prayer? {
+    return uiState.prayers.find { it.name == name }
 }
